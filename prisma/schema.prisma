@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = env("DATABASE_PROVIDER")
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL", "")
+}
+
+enum GenderLabel {
+  mens
+  womens
+  unisex
+}
+
+enum PairType {
+  MM
+  WW
+  UNISEX
+  CUSTOM
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  matchRequests MatchRequest[]
+  savedBundles  SavedBundle[]
+}
+
+model Product {
+  id          String       @id @default(cuid())
+  name        String
+  brand       String?
+  images      String[]
+  price       Int
+  genderLabel GenderLabel
+  sizes       String[]
+  tags        String[]
+  collection  String?
+  stock       Int          @default(0)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  pairBundleA PairBundle[] @relation("ProductA")
+  pairBundleB PairBundle[] @relation("ProductB")
+}
+
+model MatchRequest {
+  id          String       @id @default(cuid())
+  userId      String?
+  pairType    PairType
+  styleTags   String[]
+  sizesA      String[]
+  sizesB      String[]
+  budgetMin   Int
+  budgetMax   Int
+  occasion    String?
+  createdAt   DateTime     @default(now())
+  user        User?        @relation(fields: [userId], references: [id])
+  bundles     PairBundle[]
+}
+
+model PairBundle {
+  id              String     @id @default(cuid())
+  productAId      String
+  productBId      String
+  totalPrice      Int
+  score           Float
+  reason          String
+  createdAt       DateTime   @default(now())
+  matchRequestId  String
+  matchRequest    MatchRequest @relation(fields: [matchRequestId], references: [id])
+  productA        Product    @relation("ProductA", fields: [productAId], references: [id])
+  productB        Product    @relation("ProductB", fields: [productBId], references: [id])
+  savedBy         SavedBundle[]
+}
+
+model SavedBundle {
+  id        String     @id @default(cuid())
+  userId    String
+  bundleId  String
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
+  bundle    PairBundle @relation(fields: [bundleId], references: [id])
+
+  @@unique([userId, bundleId])
+}
